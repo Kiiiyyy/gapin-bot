@@ -11,4 +11,4 @@ misi :
 menyelenggarakan pendidikan tinggi yang berkualitas dalam bidang industri manufaktur dengan berpedoman pada tri dharma perguruan tinggi.
 perdagangan gelap roti juna : merupakan penjualan gelap yang dilaukan oleh ketua Programming club di kelas 2 IT Programming.
 lagu:
-im but small voice : IM BUT SMALL VOICE.mp3
+im but small voice : "lagu/IM BUT SMALL VOICE.mp3"
