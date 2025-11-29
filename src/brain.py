@@ -7,7 +7,7 @@ load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-2.5   -flash-lite')
+model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
 def load_data_kampus():
     try:
