@@ -1,14 +1,134 @@
-Nama robot : GAPIN (gajah pintar).
-Nama Kampus : Politeknik Gajah tunggal
-Lokasi: Jalan Programming No. 1, Tangerang.
-Ketua UKM Programming Club saat ini adalah Bapak Najwan Caesar.
-Gedung Rektorat ada di sebelah utara perpustakaan.
-Jam operasional perpustakaan adalah jam 08.00 sampai 16.00.
-Visi & misi Politeknik Gajah tunggal : 
-visi :
-menjadi Politeknik unggulan yang berkiprah secara nasional, mampu berkontribusi kepada bangsa dan negara serta mengacu nilai gajah spirit
-misi :
-menyelenggarakan pendidikan tinggi yang berkualitas dalam bidang industri manufaktur dengan berpedoman pada tri dharma perguruan tinggi.
-perdagangan gelap roti juna : merupakan penjualan gelap yang dilaukan oleh ketua Programming club di kelas 2 IT Programming.
-lagu:
-im but small voice : IM BUT SMALL VOICE.mp3
+Ketua himpunan politeknik gajah tunggal :
+
+Teknik Elektronika : Shafly Khalifa Pamungkas
+
+Teknik Mesin : Ilham
+
+Teknologi Industri : Cadas
+
+Teknologi Informasi : Belum ada himpunan
+
+
+UKK / UKM yang ada di politeknik gajah tunggal : 
+
+UKK : 
+1. Pataka (Pasukan Tanda Kehormatan) (Azan)
+
+2. Padus (Paduan Sara) (Efraim)
+
+3. Drumband (Ilham)
+
+UKM :
+
+- Sports :
+1. Badminton (Bulu tangkis) (Novri Anwar)
+2. Futsal (izaz Alisyahbana)
+3. Basket (Thoriq Annajmusaqib)
+4. Voli (Rivan Surya
+
+Akademik :
+1. Programming Club (Najwan)
+2. 
+3. 
+
+
+Visi dan Misi :
+Menjadi politeknik unggulan yang berkiprah secara nasional, mampu berkontribusi kepada bangsa dan negara serta mengacu nilai nilai gajah spirit
+
+Menyelenggarakan pendidikan tinggi yang berkualitas dalam bidang industri manufaktur dengan berpedoman pada tri dharma perguruan tinggi
+
+
+Pancasetya mahasiswa politeknik gajah tunggal :
+1. Setia kepada pancasila dan undang - undang dasar 1945
+2. Menjunjung tinggi derajat dan martabat pendidikan
+3. Mematuhi segala peraturan dan tata tertib yang berlaku
+4. Menjalankan segala tugas dan kewajiban yang diberikan kepada kami
+5. Memegang teguh prinsip dan kehormatan demi nama baik almamater
+
+Kaprodi :
+1. Teknik elektro : Pak Ridwan Arif Cahyono
+2. Teknologi Industri : Bu Tita Latifah Ahmad
+3. Teknik Mesin : Pak Dharmanto
+4. Teknologi Informasi : Pak Ridwan Arif Cahyono
+
+9 Budi poltek gt
+- Respect
+- Jujur
+- Disiplin 
+- Tanggung jawab
+- Kerja sama
+- Visioner
+- Adil
+- Peduli
+- Tawakal
+
+5 R : 
+- Ringkas
+- Rapi
+- Resik
+- Rawat
+- Rajin
+
+5 S : 
+- Seiri
+- Seiton
+- Seiso 
+- Seiketsu
+- Shitsuke
+
+Penjelasan 5R/5S : 
+- Ringkas : Memilah barang dan membuang barang yang tidak diperlukan di area kerja
+- Rapi : 
+
+Sejarah singkat
+
+
+Lagu kebangsaan poltek gt :
+
+- Hymne politeknik gajah tunggal
+
+- Mars Poltek GT
+
+- I'm But A Small Voice
+
+
+- gajah spirit (Optional)
+
+Service
+Passion
+Integrity
+Respect
+Innovation
+Teamwork
+
+
+Nama - nama dosen beserta staff : 
+1. Ibu Dr. Ita Mariza - (Direktur)
+2. Indah Puspa Murni, S.T., M.Sc. - (Dosen TE, TI)
+3. Dr. Eng. Ari Kuswantori, S.T., M.T., - (Dosen TE, IT)
+4. Adik Susilo Wardoyono, S.Pd., M.T., - (Dosen TE)
+5. Henry Prasetyo, S.Si., M.T. - (Dosen TE)
+6. Donny Muda Priyangan, S.Kom., M.T.I - (Dosen IT)
+7. Arthea Alitta Yona Fisca, A.Md.T. - (Dosen IT)
+8. Peltu Mochamad Arief Soesanto, S.H., M.H. - (Dosen PBB dan Mental Disiplin)
+9. M. Ridwan Arif Cahyono, S.T., M.T. - (Dosen TE, IT)
+10. Tita Latifah Ahmad, S.T., M.T. - (Dosen TE, TI)
+11. M. Rikza As-Subhy, A.Md. - (Dosen TE, IT)
+12. Ahmad Zohari, S.T., M.Eng. - (Dosen TM)
+13. Dr. Dharmanto, S.T., M.T. - (Dosen TM)
+14. Puguh Elmiawan, S.Pd., M.Pd. - (Dosen TM, TI)
+15. M. Ibnu Rusydi, S.Pd., M.Pd. - (Dosen TM)
+16. Ilham Taufik Maulana, S.S.T., M.T. - (Dosen TM)
+17. Sony Sanjaya -
+18. Andik Susanto -
+19. Adi Utomo -
+20. Aluysius Marwoto -
+21. Amin Kuato -
+22. Dendi Kurniawan -
+23. Eka Sartika -
+24. El Roy Donito -
+25. Hidayat Noerwahid -
+26. Rafika Risanty -
+27. Rifky Mardiansyah Akbar -
+28. Slamet Afandi - (Dosen TE)
+29. Suci Ufiyanti -
