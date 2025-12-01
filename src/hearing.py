@@ -3,7 +3,7 @@ import speech_recognition as sr
 import os
 import tempfile
 
-def mendengar(duration=8, mic_device='pulse'):
+def mendengar(duration=8, mic_device='hw:3,0'):
     """Merekam audio pakai arecord, lalu convert ke teks dengan Google SR"""
     
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmpfile:
