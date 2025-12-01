@@ -1,5 +1,6 @@
 import speech_recognition as sr
 import os
+import sys
 
 
 def _env_mic_index():
@@ -15,11 +16,11 @@ def _env_mic_index():
 
 def mendengar(listen_mode="wake", mic_device=None):
     """
-    Mendengarkan suara dan convert ke teks.
+    Mendengarkan suara dan convert ke teks dengan optimasi untuk responsivitas maksimal.
     
     Args:
         listen_mode: "wake" = continuous listening tanpa timeout, 
-                     "command" = listen dengan durasi tertentu
+                     "command" = listen dengan durasi tertentu (lebih responsive)
         mic_device: Device index untuk microphone (None = default)
     
     Returns:
@@ -27,104 +28,124 @@ def mendengar(listen_mode="wake", mic_device=None):
     """
     recognizer = sr.Recognizer()
     
-    # Konfigurasi dasar - akan di-adjust per mode
+    # Konfigurasi dasar - optimized untuk speed
     recognizer.dynamic_energy_threshold = True
-    recognizer.phrase_threshold = 0.3
+    recognizer.dynamic_energy_adjustment_damping = 0.15
+    recognizer.phrase_threshold = 0.2  # Lower = lebih cepat detect
     
     device_index = _env_mic_index() if mic_device is None else mic_device
     
     try:
         with sr.Microphone(device_index=device_index) as source:
             if listen_mode == "wake":
-                # Konfigurasi untuk wake mode
-                recognizer.energy_threshold = 400
-                recognizer.pause_threshold = 0.8
-                recognizer.non_speaking_duration = 0.5
+                # Konfigurasi untuk wake mode - optimized untuk speed
+                recognizer.energy_threshold = 300  # Lower = lebih sensitif, detect lebih cepat
+                recognizer.pause_threshold = 0.5   # Shorter = lebih cepat stop
+                recognizer.non_speaking_duration = 0.25  # Minimal silence untuk stop cepat
                 
-                # Kalibrasi ambient noise hanya sekali di awal
+                # Quick calibration (hanya 0.2s)
                 try:
-                    recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                    recognizer.adjust_for_ambient_noise(source, duration=0.2)
                 except sr.WaitTimeoutError:
-                    pass  # Skip jika tidak ada suara latar
-                # Continuous listening - loop terus sampai ada suara terdeteksi
+                    pass
+                
+                # Continuous listening - loop dengan feedback real-time
                 print("👂 Mendengarkan terus menerus... (ucapkan 'Gapin' untuk memanggil)")
                 
                 while True:
                     try:
-                        # Listen dengan timeout pendek per iterasi untuk continuous listening
-                        # Timeout 1 detik = cepat detect suara baru, phrase_time_limit 3 = max durasi per phrase
-                        audio = recognizer.listen(source, timeout=1, phrase_time_limit=3)
+                        # Ultra-short timeout untuk maximum responsiveness
+                        audio = recognizer.listen(source, timeout=0.3, phrase_time_limit=2.5)
                         
-                        # Coba recognize
+                        # INSTANT feedback saat audio terdeteksi
+                        sys.stdout.write("🔊 Suara terdeteksi! ⚡ ")
+                        sys.stdout.flush()
+                        
+                        # Process dengan feedback real-time
                         try:
                             text = recognizer.recognize_google(audio, language='id-ID')
+                            
                             if text and text.strip():
-                                print(f"🗣️ Terdengar: {text}")
+                                sys.stdout.write(f"\r✅ Terdengar: {text}\n")
+                                sys.stdout.flush()
                                 return text.strip()
                         except sr.UnknownValueError:
-                            # Suara tidak jelas/tidak ada suara, lanjut loop (continuous listening)
+                            # Clear line dan continue (fast reset)
+                            sys.stdout.write("\r" + " " * 50 + "\r")
+                            sys.stdout.flush()
                             continue
                         except sr.RequestError as e:
-                            print(f"❌ Error koneksi: {e}")
+                            print(f"\r❌ Error koneksi: {e}")
                             return None
                             
                     except sr.WaitTimeoutError:
-                        # Timeout = tidak ada suara, lanjut loop (ini yang membuat continuous listening)
+                        # Timeout = lanjut loop instantly (continuous listening)
                         continue
                         
-            else:  # command mode - responsive, mulai saat ada suara terdeteksi
-                # Konfigurasi optimal untuk command mode (lebih responsive)
-                recognizer.energy_threshold = 300  # Lebih sensitif untuk detect suara cepat
-                recognizer.pause_threshold = 0.5   # Lebih pendek = lebih cepat stop setelah silence
-                recognizer.non_speaking_duration = 0.3  # Durasi silence lebih pendek
+            else:  # command mode - MAXIMUM RESPONSIVENESS
+                # Konfigurasi ultra-responsive untuk command mode
+                recognizer.energy_threshold = 250  # Very sensitive
+                recognizer.pause_threshold = 0.4   # Very fast stop
+                recognizer.non_speaking_duration = 0.2  # Minimal silence
                 
-                # Kalibrasi ambient noise dengan cepat untuk command mode
+                # Very quick calibration
                 try:
-                    recognizer.adjust_for_ambient_noise(source, duration=0.3)
+                    recognizer.adjust_for_ambient_noise(source, duration=0.2)
                 except sr.WaitTimeoutError:
                     pass
                 
-                # Best practice: Wait for speech detection - mulai listening hanya saat ada suara
-                # listen() otomatis wait sampai ada suara yang melewati energy_threshold
-                print("👂 Menunggu perintah Anda...")
+                # Interactive feedback
+                print("👂 Siap mendengarkan...")
+                sys.stdout.write("   ⏳ Menunggu perintah Anda...\r")
+                sys.stdout.flush()
                 
                 try:
-                    # Listen() akan otomatis:
-                    # 1. Wait for speech activity (tunggu sampai energy threshold tercapai)
-                    # 2. Record audio mulai dari saat suara terdeteksi
-                    # 3. Stop setelah pause_threshold + non_speaking_duration
-                    # Ini membuatnya sangat responsive - mulai record tepat saat ada suara
+                    # Ultra-responsive listening
+                    # Timeout pendek tapi phrase_limit cukup untuk perintah
                     audio = recognizer.listen(
                         source, 
-                        timeout=5,  # Max waktu menunggu sebelum ada suara
-                        phrase_time_limit=4  # Max durasi rekaman
+                        timeout=4,  # Shorter timeout
+                        phrase_time_limit=4  # Max durasi
                     )
                     
-                    # Process audio yang sudah terekam (mulai dari saat suara terdeteksi)
+                    # Immediate feedback saat suara terdeteksi (INSTANT!)
+                    sys.stdout.write("\r🔊 Perintah terdeteksi! ")
+                    sys.stdout.flush()
+                    
+                    # Process immediately tanpa delay
+                    sys.stdout.write("⚡ Memproses... ")
+                    sys.stdout.flush()
+                    
+                    # Fast recognition (non-blocking feedback)
                     text = recognizer.recognize_google(audio, language='id-ID')
+                    
                     if text and text.strip():
-                        print(f"🗣️ Anda bilang: {text}")
+                        sys.stdout.write(f"\r✅ Anda bilang: {text}\n")
+                        sys.stdout.flush()
                         return text.strip()
                     else:
-                        print("❌ Suara tidak jelas.")
+                        print("\r❌ Suara tidak jelas.")
                         return None
                     
                 except sr.WaitTimeoutError:
-                    print("⏱️ Timeout: Tidak ada perintah terdeteksi.")
+                    print("\r⏱️ Timeout: Tidak ada perintah terdeteksi.")
                     return None
                 except sr.UnknownValueError:
-                    print("❌ Suara tidak jelas atau tidak ada suara terdeteksi.")
+                    print("\r❌ Suara tidak jelas atau tidak ada suara terdeteksi.")
                     return None
                 except sr.RequestError as e:
-                    print(f"❌ Koneksi internet putus: {e}")
+                    print(f"\r❌ Koneksi internet putus: {e}")
                     return None
                     
+    except KeyboardInterrupt:
+        print("\n⚠️ Interrupted by user")
+        return None
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"\r❌ Error: {e}")
         return None
 
 
 if __name__ == "__main__":
-    print("Testing wake mode (continuous listening)...")
-    result = mendengar("wake")
+    print("Testing command mode (responsive listening)...")
+    result = mendengar("command")
     print(f"Hasil: {result}")
