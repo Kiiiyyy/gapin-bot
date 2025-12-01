@@ -12,7 +12,7 @@ import os
 WAKE_WORDS = [
     "gapin", "gafin", "gaphin", "gappen", "gaping",
     "gabin", "gaben", "gavin", "kapin", "kafin",
-    "gupin", "gopin", "ga pin", "ga fin"
+    "gupin", "gopin", "ga pin", "ga fin", "davin", "kevin", "dabin"
 ]
 
 WAKE_THRESHOLD = 80  # semakin tinggi = semakin ketat
