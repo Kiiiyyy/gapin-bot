@@ -33,9 +33,8 @@ Akademik :
 
 
 Visi dan Misi :
-Menjadi politeknik unggulan yang berkiprah secara nasional, mampu berkontribusi kepada bangsa dan negara serta mengacu nilai nilai gajah spirit
-
-Menyelenggarakan pendidikan tinggi yang berkualitas dalam bidang industri manufaktur dengan berpedoman pada tri dharma perguruan tinggi
+	visi : "Menjadi politeknik unggulan yang berkiprah secara nasional, mampu berkontribusi kepada bangsa dan negara serta mengacu nilai nilai gajah spirit"
+	misi : "Menyelenggarakan pendidikan tinggi yang berkualitas dalam bidang industri manufaktur dengan berpedoman pada tri dharma perguruan tinggi"
 
 
 Pancasetya mahasiswa politeknik gajah tunggal :
