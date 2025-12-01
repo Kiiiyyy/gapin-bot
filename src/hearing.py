@@ -16,11 +16,11 @@ def _env_mic_index():
 
 def mendengar(listen_mode="wake", mic_device=None):
     """
-    Mendengarkan suara dan convert ke teks dengan optimasi untuk responsivitas maksimal.
+    Mendengarkan suara dan convert ke teks dengan optimasi untuk capture penuh.
     
     Args:
         listen_mode: "wake" = continuous listening tanpa timeout, 
-                     "command" = listen dengan durasi tertentu (lebih responsive)
+                     "command" = listen dengan durasi tertentu
         mic_device: Device index untuk microphone (None = default)
     
     Returns:
@@ -28,26 +28,35 @@ def mendengar(listen_mode="wake", mic_device=None):
     """
     recognizer = sr.Recognizer()
     
-    # Konfigurasi dasar - optimized untuk speed
+    # Konfigurasi dasar - balanced untuk capture penuh
     recognizer.dynamic_energy_threshold = True
     recognizer.dynamic_energy_adjustment_damping = 0.15
-    recognizer.phrase_threshold = 0.2  # Lower = lebih cepat detect
     
     device_index = _env_mic_index() if mic_device is None else mic_device
     
     try:
         with sr.Microphone(device_index=device_index) as source:
             if listen_mode == "wake":
-                # Konfigurasi untuk wake mode - MAXIMUM SENSITIVITY untuk detect semua suara
-                # Best practice: Detect semua suara apapun, biarkan main.py yang filter wake word
-                recognizer.energy_threshold = 250  # Very sensitive - detect semua suara termasuk suara pelan
-                recognizer.pause_threshold = 0.5   # Shorter = lebih cepat stop setelah suara
-                recognizer.non_speaking_duration = 0.25  # Minimal silence untuk stop cepat
-                recognizer.phrase_threshold = 0.1  # Very low - detect suara sangat cepat
+                # Konfigurasi balanced untuk wake mode - capture penuh dari awal
+                # Best practice: Parameter balanced untuk capture penuh tanpa cut off awal suara
                 
-                # Quick calibration untuk ambient noise
+                # Energy threshold: Cukup untuk detect suara normal, tidak terlalu sensitif
+                recognizer.energy_threshold = 350  
+                
+                # Pause threshold: Durasi silence sebelum stop recording
+                # Penting: Cukup panjang untuk capture kata penuh setelah user selesai bicara
+                recognizer.pause_threshold = 0.8   
+                
+                # Phrase threshold: Threshold untuk mulai recording
+                # Tidak terlalu rendah agar tidak start recording terlalu cepat (yang bisa miss awal)
+                recognizer.phrase_threshold = 0.3  
+                
+                # Non-speaking duration: Durasi silence minimum untuk stop
+                recognizer.non_speaking_duration = 0.5  
+                
+                # Calibration untuk ambient noise (penting untuk filter noise)
                 try:
-                    recognizer.adjust_for_ambient_noise(source, duration=0.2)
+                    recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 except sr.WaitTimeoutError:
                     pass
                 
@@ -56,11 +65,16 @@ def mendengar(listen_mode="wake", mic_device=None):
                 
                 while True:
                     try:
-                        # Ultra-short timeout untuk maximum responsiveness
-                        # Detect suara apapun, tidak peduli apa yang dikatakan
-                        audio = recognizer.listen(source, timeout=0.2, phrase_time_limit=3)
+                        # listen() sudah punya internal buffer untuk capture awal suara
+                        # timeout: Max waktu menunggu sebelum ada suara (untuk wait, bukan cut off)
+                        # phrase_time_limit: Max durasi recording (cukup untuk capture penuh)
+                        audio = recognizer.listen(
+                            source, 
+                            timeout=1,  # Wait max 1 detik untuk ada suara
+                            phrase_time_limit=4  # Max 4 detik recording (cukup untuk frase penuh)
+                        )
                         
-                        # INSTANT feedback saat audio terdeteksi (apapun suaranya)
+                        # Feedback saat audio terdeteksi
                         sys.stdout.write("🔊 Suara terdeteksi! ⚡ ")
                         sys.stdout.flush()
                         
@@ -75,8 +89,7 @@ def mendengar(listen_mode="wake", mic_device=None):
                                 sys.stdout.flush()
                                 return text.strip()
                         except sr.UnknownValueError:
-                            # Suara tidak jelas - clear dan continue (tidak return None)
-                            # Ini penting: hanya skip, tidak stop listening
+                            # Suara tidak jelas - clear dan continue
                             sys.stdout.write("\r" + " " * 50 + "\r")
                             sys.stdout.flush()
                             continue
@@ -88,15 +101,16 @@ def mendengar(listen_mode="wake", mic_device=None):
                         # Timeout = tidak ada suara, lanjut loop (continuous listening)
                         continue
                         
-            else:  # command mode - MAXIMUM RESPONSIVENESS
-                # Konfigurasi ultra-responsive untuk command mode
-                recognizer.energy_threshold = 250  # Very sensitive
-                recognizer.pause_threshold = 0.4   # Very fast stop
-                recognizer.non_speaking_duration = 0.2  # Minimal silence
+            else:  # command mode - balanced untuk capture penuh
+                # Konfigurasi balanced untuk command mode
+                recognizer.energy_threshold = 300  # Balanced sensitivity
+                recognizer.pause_threshold = 0.6   # Cukup panjang untuk capture perintah penuh
+                recognizer.phrase_threshold = 0.3  # Balanced - capture dari awal
+                recognizer.non_speaking_duration = 0.4  # Cukup untuk detect akhir perintah
                 
-                # Very quick calibration
+                # Calibration
                 try:
-                    recognizer.adjust_for_ambient_noise(source, duration=0.2)
+                    recognizer.adjust_for_ambient_noise(source, duration=0.3)
                 except sr.WaitTimeoutError:
                     pass
                 
@@ -106,23 +120,19 @@ def mendengar(listen_mode="wake", mic_device=None):
                 sys.stdout.flush()
                 
                 try:
-                    # Ultra-responsive listening
-                    # Timeout pendek tapi phrase_limit cukup untuk perintah
+                    # Balanced listening - capture penuh dari awal sampai akhir
+                    # timeout = wait for speech, phrase_time_limit = max durasi recording
                     audio = recognizer.listen(
                         source, 
-                        timeout=4,  # Shorter timeout
-                        phrase_time_limit=4  # Max durasi
+                        timeout=5,  # Wait cukup lama untuk ada suara
+                        phrase_time_limit=5  # Max durasi cukup untuk perintah penuh
                     )
                     
-                    # Immediate feedback saat suara terdeteksi (INSTANT!)
-                    sys.stdout.write("\r🔊 Perintah terdeteksi! ")
+                    # Feedback saat suara terdeteksi
+                    sys.stdout.write("\r🔊 Perintah terdeteksi! ⚡ Memproses... ")
                     sys.stdout.flush()
                     
-                    # Process immediately tanpa delay
-                    sys.stdout.write("⚡ Memproses... ")
-                    sys.stdout.flush()
-                    
-                    # Fast recognition (non-blocking feedback)
+                    # Recognition
                     text = recognizer.recognize_google(audio, language='id-ID')
                     
                     if text and text.strip():
@@ -152,6 +162,6 @@ def mendengar(listen_mode="wake", mic_device=None):
 
 
 if __name__ == "__main__":
-    print("Testing command mode (responsive listening)...")
-    result = mendengar("command")
+    print("Testing wake mode (balanced listening)...")
+    result = mendengar("wake")
     print(f"Hasil: {result}")
