@@ -1,6 +1,7 @@
 from src.brain import tanya_robot
 from src.speaking import ngomong
 from src.hearing import mendengar
+from src.music import handle_music_command
 from fuzzywuzzy import fuzz
 import os
 import time
@@ -16,6 +17,9 @@ WAKE_WORDS = [
 ]
 
 WAKE_THRESHOLD = 80  # semakin tinggi = semakin ketat
+MAX_COMMAND_ATTEMPTS = 1
+WAKE_LISTEN_DURATION = 4
+COMMAND_LISTEN_DURATION = 3
 
 
 def is_wake_word(text):
@@ -50,6 +54,19 @@ def bersihkan_pertanyaan(teks, wake_word):
     return teks
 
 
+def dengarkan_setelah_panggilan():
+    """Coba dengarkan perintah setelah wake word."""
+    for attempt in range(MAX_COMMAND_ATTEMPTS):
+        print(f"🎙️ Mendengarkan perintah lanjutan (percobaan {attempt+1})...")
+        perintah = mendengar(duration=COMMAND_LISTEN_DURATION)
+        if perintah:
+            return perintah
+
+        print("😶 Tidak terdengar perintah, mencoba lagi...")
+
+    return None
+
+
 def main():
 
     if not os.getenv("GOOGLE_API_KEY"):
@@ -67,7 +84,7 @@ def main():
     while True:
         try:
             # 1. Dengar suara
-            suara_asli = mendengar()
+            suara_asli = mendengar(duration=WAKE_LISTEN_DURATION)
 
             if not suara_asli:
                 continue
@@ -86,10 +103,30 @@ def main():
 
                 # Jika cuma memanggil "Gapin"
                 if not pertanyaan.strip():
+                    print("⚡ Hanya wake word, lanjut rekam perintah...")
                     ngomong("Ya, ada yang bisa saya bantu?")
-                    continue
+                    perintah_baru = dengarkan_setelah_panggilan()
+
+                    if not perintah_baru:
+                        ngomong("Aku tidak menangkap perintah. Panggil aku lagi ya.")
+                        continue
+
+                    pertanyaan = perintah_baru.lower().strip()
 
                 # 4. Proses perintah
+                handled, music_response, music_action = handle_music_command(pertanyaan)
+
+                if handled:
+                    if music_response:
+                        ngomong(music_response)
+                    if music_action:
+                        try:
+                            music_action()
+                        except Exception as err:
+                            print(f"❌ Gagal memutar lagu: {err}")
+                            ngomong("Maaf, aku gagal memutar lagu itu.")
+                    continue
+
                 jawaban = tanya_robot(pertanyaan)
                 ngomong(jawaban)
 
