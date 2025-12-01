@@ -6,3 +6,4 @@ edge-tts
 pygame
 fuzzywuzzy
 pydub
+webrtcvad

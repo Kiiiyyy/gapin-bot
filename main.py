@@ -4,7 +4,6 @@ from src.hearing import mendengar
 from src.music import handle_music_command
 from fuzzywuzzy import fuzz
 import os
-import time
 
 
 # =============================
@@ -18,8 +17,6 @@ WAKE_WORDS = [
 
 WAKE_THRESHOLD = 80  # semakin tinggi = semakin ketat
 MAX_COMMAND_ATTEMPTS = 1
-WAKE_LISTEN_DURATION = 4
-COMMAND_LISTEN_DURATION = 3
 
 
 def is_wake_word(text):
@@ -58,7 +55,7 @@ def dengarkan_setelah_panggilan():
     """Coba dengarkan perintah setelah wake word."""
     for attempt in range(MAX_COMMAND_ATTEMPTS):
         print(f"🎙️ Mendengarkan perintah lanjutan (percobaan {attempt+1})...")
-        perintah = mendengar(duration=COMMAND_LISTEN_DURATION)
+        perintah = mendengar(listen_mode="command")
         if perintah:
             return perintah
 
@@ -84,7 +81,7 @@ def main():
     while True:
         try:
             # 1. Dengar suara
-            suara_asli = mendengar(duration=WAKE_LISTEN_DURATION)
+            suara_asli = mendengar(listen_mode="wake")
 
             if not suara_asli:
                 continue
