@@ -74,18 +74,18 @@ def main():
                 continue
 
             suara_lower = suara_asli.lower().strip()
-            print(f"🎧 Terdengar: {suara_asli}")
 
-            # 2. Cek apakah ada wake word
+            # 2. Cek apakah yang terdeteksi adalah wake word
+            # Best practice: Phase 1 selalu detect semua suara, phase 2 hanya trigger jika wake word
             terpanggil = is_wake_word(suara_lower)
 
             if terpanggil:
-                print("✅ Wake word terdeteksi!")
+                print(f"✅ Wake word terdeteksi! (dari: '{suara_asli}')")
                 
-                # 3. Langsung jawab (best practice: confirm dulu)
+                # 3. Langsung jawab (best practice: confirm dulu sebelum lanjut)
                 ngomong("Ya, ada yang bisa saya bantu?")
                 
-                # 4. Baru dengar perintah setelah jawab
+                # 4. Baru dengar perintah setelah jawab (Phase 2)
                 pertanyaan = dengarkan_perintah()
 
                 if not pertanyaan:
@@ -115,7 +115,10 @@ def main():
                 ngomong(jawaban)
 
             else:
-                print(f"❌ Diabaikan (bukan panggilan): {suara_asli}")
+                # Bukan wake word - diabaikan dan lanjut listening (Phase 1 terus berjalan)
+                # Best practice: Silent ignore untuk wake word detection
+                # Sistem terus mendengarkan tanpa gangguan
+                pass
 
         except KeyboardInterrupt:
             print("\nProgram dihentikan.")

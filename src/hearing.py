@@ -38,39 +38,45 @@ def mendengar(listen_mode="wake", mic_device=None):
     try:
         with sr.Microphone(device_index=device_index) as source:
             if listen_mode == "wake":
-                # Konfigurasi untuk wake mode - optimized untuk speed
-                recognizer.energy_threshold = 300  # Lower = lebih sensitif, detect lebih cepat
-                recognizer.pause_threshold = 0.5   # Shorter = lebih cepat stop
+                # Konfigurasi untuk wake mode - MAXIMUM SENSITIVITY untuk detect semua suara
+                # Best practice: Detect semua suara apapun, biarkan main.py yang filter wake word
+                recognizer.energy_threshold = 250  # Very sensitive - detect semua suara termasuk suara pelan
+                recognizer.pause_threshold = 0.5   # Shorter = lebih cepat stop setelah suara
                 recognizer.non_speaking_duration = 0.25  # Minimal silence untuk stop cepat
+                recognizer.phrase_threshold = 0.1  # Very low - detect suara sangat cepat
                 
-                # Quick calibration (hanya 0.2s)
+                # Quick calibration untuk ambient noise
                 try:
                     recognizer.adjust_for_ambient_noise(source, duration=0.2)
                 except sr.WaitTimeoutError:
                     pass
                 
-                # Continuous listening - loop dengan feedback real-time
-                print("👂 Mendengarkan terus menerus... (ucapkan 'Gapin' untuk memanggil)")
+                # Continuous listening - ALWAYS detect semua suara apapun
+                print("👂 Mendengarkan terus menerus... (akan detect semua suara)")
                 
                 while True:
                     try:
                         # Ultra-short timeout untuk maximum responsiveness
-                        audio = recognizer.listen(source, timeout=0.3, phrase_time_limit=2.5)
+                        # Detect suara apapun, tidak peduli apa yang dikatakan
+                        audio = recognizer.listen(source, timeout=0.2, phrase_time_limit=3)
                         
-                        # INSTANT feedback saat audio terdeteksi
+                        # INSTANT feedback saat audio terdeteksi (apapun suaranya)
                         sys.stdout.write("🔊 Suara terdeteksi! ⚡ ")
                         sys.stdout.flush()
                         
-                        # Process dengan feedback real-time
+                        # Process SEMUA suara yang terdeteksi - tidak filter di sini
                         try:
                             text = recognizer.recognize_google(audio, language='id-ID')
                             
+                            # Return SEMUA text yang terdeteksi (apapun itu)
+                            # Biarkan main.py yang cek apakah ini wake word atau bukan
                             if text and text.strip():
                                 sys.stdout.write(f"\r✅ Terdengar: {text}\n")
                                 sys.stdout.flush()
                                 return text.strip()
                         except sr.UnknownValueError:
-                            # Clear line dan continue (fast reset)
+                            # Suara tidak jelas - clear dan continue (tidak return None)
+                            # Ini penting: hanya skip, tidak stop listening
                             sys.stdout.write("\r" + " " * 50 + "\r")
                             sys.stdout.flush()
                             continue
@@ -79,7 +85,7 @@ def mendengar(listen_mode="wake", mic_device=None):
                             return None
                             
                     except sr.WaitTimeoutError:
-                        # Timeout = lanjut loop instantly (continuous listening)
+                        # Timeout = tidak ada suara, lanjut loop (continuous listening)
                         continue
                         
             else:  # command mode - MAXIMUM RESPONSIVENESS
