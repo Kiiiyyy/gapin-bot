@@ -21,45 +21,31 @@ MAX_COMMAND_ATTEMPTS = 1
 
 def is_wake_word(text):
     """Cek apakah text mirip wake word (bagian depan kalimat)."""
-
     words = text.lower().split()
 
     if len(words) == 0:
-        return False, ""
+        return False
 
     first_word = words[0]  # hanya cek kata pertama
 
     for w in WAKE_WORDS:
         score = fuzz.ratio(first_word, w)
         if score >= WAKE_THRESHOLD:
-            return True, w
+            return True
 
-    return False, ""
-
-
-def bersihkan_pertanyaan(teks, wake_word):
-    """Buang wake word di depan kalimat tanpa merusak konten."""
-    teks = teks.lower().strip()
-
-    # Jika wake word ada di awal kalimat → hapus
-    if teks.startswith(wake_word):
-        teks = teks[len(wake_word):].strip()
-
-    # Jika masih ada koma/tanda baca
-    teks = teks.lstrip(",. ")
-
-    return teks
+    return False
 
 
-def dengarkan_setelah_panggilan():
-    """Coba dengarkan perintah setelah wake word."""
+def dengarkan_perintah():
+    """Dengarkan perintah setelah dipanggil."""
     for attempt in range(MAX_COMMAND_ATTEMPTS):
-        print(f"🎙️ Mendengarkan perintah lanjutan (percobaan {attempt+1})...")
+        print(f"🎙️ Mendengarkan perintah (percobaan {attempt+1})...")
         perintah = mendengar(listen_mode="command")
         if perintah:
             return perintah
 
-        print("😶 Tidak terdengar perintah, mencoba lagi...")
+        if attempt < MAX_COMMAND_ATTEMPTS - 1:
+            print("😶 Tidak terdengar perintah, mencoba lagi...")
 
     return None
 
@@ -72,7 +58,8 @@ def main():
 
     print("==========================================")
     print("🤖 ROBOT KAMPUS (Mode Wake Word + Fuzzy)")
-    print("Ucapkan: 'Gapin ... (pertanyaan)'")
+    print("Cara pakai: Ucapkan 'Gapin', lalu tunggu konfirmasi")
+    print("Setelah Gapin menjawab, baru ucapkan perintah Anda")
     print("Tekan Ctrl+C untuk berhenti.")
     print("==========================================")
 
@@ -80,37 +67,36 @@ def main():
 
     while True:
         try:
-            # 1. Dengar suara
+            # 1. Dengar wake word ("Gapin")
             suara_asli = mendengar(listen_mode="wake")
 
             if not suara_asli:
                 continue
 
-            suara_lower = suara_asli.lower()
+            suara_lower = suara_asli.lower().strip()
             print(f"🎧 Terdengar: {suara_asli}")
 
-            # 2. Uji wake word
-            terpanggil, ww = is_wake_word(suara_lower)
+            # 2. Cek apakah ada wake word
+            terpanggil = is_wake_word(suara_lower)
 
             if terpanggil:
-                print(f"✅ Wake word cocok: {ww}")
+                print("✅ Wake word terdeteksi!")
                 
-                # 3. Bersihkan kalimat dari wake word
-                pertanyaan = bersihkan_pertanyaan(suara_lower, ww)
+                # 3. Langsung jawab (best practice: confirm dulu)
+                ngomong("Ya, ada yang bisa saya bantu?")
+                
+                # 4. Baru dengar perintah setelah jawab
+                pertanyaan = dengarkan_perintah()
 
-                # Jika cuma memanggil "Gapin"
-                if not pertanyaan.strip():
-                    print("⚡ Hanya wake word, lanjut rekam perintah...")
-                    ngomong("Ya, ada yang bisa saya bantu?")
-                    perintah_baru = dengarkan_setelah_panggilan()
+                if not pertanyaan:
+                    print("😶 Tidak ada perintah yang tertangkap.")
+                    ngomong("Aku tidak menangkap perintah. Panggil aku lagi ya.")
+                    continue
 
-                    if not perintah_baru:
-                        ngomong("Aku tidak menangkap perintah. Panggil aku lagi ya.")
-                        continue
+                pertanyaan = pertanyaan.lower().strip()
+                print(f"📝 Perintah: {pertanyaan}")
 
-                    pertanyaan = perintah_baru.lower().strip()
-
-                # 4. Proses perintah
+                # 5. Proses perintah
                 handled, music_response, music_action = handle_music_command(pertanyaan)
 
                 if handled:
@@ -124,6 +110,7 @@ def main():
                             ngomong("Maaf, aku gagal memutar lagu itu.")
                     continue
 
+                # 6. Jika bukan perintah musik, tanya ke brain
                 jawaban = tanya_robot(pertanyaan)
                 ngomong(jawaban)
 
