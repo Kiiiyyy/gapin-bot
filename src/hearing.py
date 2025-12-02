@@ -165,3 +165,4 @@ if __name__ == "__main__":
     print("Testing wake mode (balanced listening)...")
     result = mendengar("wake")
     print(f"Hasil: {result}")
+
