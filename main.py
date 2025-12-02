@@ -1,129 +1,108 @@
 from src.brain import tanya_robot
 from src.speaking import ngomong
 from src.hearing import mendengar
-from src.music import handle_music_command
-from fuzzywuzzy import fuzz
+from src.music import handle_music_command  # <--- Import modul musik
 import os
+import time
+from dotenv import load_dotenv
 
-
-# =============================
-#  LIST VARIASI WAKE WORD
-# =============================
-WAKE_WORDS = [
-    "gapin", "gafin", "gaphin", "gappen", "gaping",
-    "gabin", "gaben", "gavin", "kapin", "kafin",
-    "gupin", "gopin", "ga pin", "ga fin", "davin", "kevin", "dabin"
-]
-
-WAKE_THRESHOLD = 80  # semakin tinggi = semakin ketat
-MAX_COMMAND_ATTEMPTS = 1
-
-
-def is_wake_word(text):
-    """Cek apakah text mirip wake word (bagian depan kalimat)."""
-    words = text.lower().split()
-
-    if len(words) == 0:
-        return False
-
-    first_word = words[0]  # hanya cek kata pertama
-
-    for w in WAKE_WORDS:
-        score = fuzz.ratio(first_word, w)
-        if score >= WAKE_THRESHOLD:
-            return True
-
-    return False
-
-
-def dengarkan_perintah():
-    """Dengarkan perintah setelah dipanggil."""
-    for attempt in range(MAX_COMMAND_ATTEMPTS):
-        print(f"🎙️ Mendengarkan perintah (percobaan {attempt+1})...")
-        perintah = mendengar(listen_mode="command")
-        if perintah:
-            return perintah
-
-        if attempt < MAX_COMMAND_ATTEMPTS - 1:
-            print("😶 Tidak terdengar perintah, mencoba lagi...")
-
-    return None
-
+# Load env variables (biar API Key kebaca)
+load_dotenv()
 
 def main():
-
+    # Cek env var
     if not os.getenv("GOOGLE_API_KEY"):
-        print("⚠️ Error: API Key Gemini belum diisi.")
+        print("⚠️ Error: API Key Gemini belum diisi di .env")
         return
 
     print("==========================================")
-    print("🤖 ROBOT KAMPUS (Mode Wake Word + Fuzzy)")
-    print("Cara pakai: Ucapkan 'Gapin', lalu tunggu konfirmasi")
-    print("Setelah Gapin menjawab, baru ucapkan perintah Anda")
-    print("Tekan Ctrl+C untuk berhenti.")
+    print("🤖 ROBOT KAMPUS (Music + Flexible Wake Word)")
+    print("Panggil 'Gapin' di mana saja dalam kalimat.")
+    print("Contoh: 'Eh Gapin putar lagu avenged'")
     print("==========================================")
-
-    ngomong("Sistem siap. Silakan panggil saya dengan Gapin.")
+    
+    ngomong("Sistem siap. Panggil saya Gapin.")
+    
+    # List variasi panggilan (cukup nama saja biar flexible)
+    # Tambahkan 'halo gapin' juga biar kalau user formal tetap nyaut
+    WAKE_WORDS = ["gapin", "gavin", "dapin", "gappin", "gapen", "gapin", "gaping", "gaben", "gabin", "gupin", "gopin", "ga pin", "ga fin", "davin"]
 
     while True:
         try:
-            # 1. Dengar wake word ("Gapin")
+            # 1. Mendengar (Input Suara Standby)
             suara_asli = mendengar(listen_mode="wake")
-
+            
             if not suara_asli:
                 continue
+            
+            suara_lower = suara_asli.lower()
+            
+            # 2. LOGIKA BARU: Cek Wake Word di MANA SAJA
+            terpanggil = False
+            sisa_pertanyaan = ""
 
-            suara_lower = suara_asli.lower().strip()
-
-            # 2. Cek apakah yang terdeteksi adalah wake word
-            # Best practice: Phase 1 selalu detect semua suara, phase 2 hanya trigger jika wake word
-            terpanggil = is_wake_word(suara_lower)
+            for trigger in WAKE_WORDS:
+                if trigger in suara_lower:
+                    terpanggil = True
+                    print(f"✅ Terpanggil oleh trigger: '{trigger}'")
+                    
+                    # Potong kalimat, ambil isinya saja
+                    # Contoh: "Eh Gapin putar lagu" -> parts[0]="Eh ", parts[1]=" putar lagu"
+                    parts = suara_lower.split(trigger, 1)
+                    if len(parts) > 1:
+                        sisa_pertanyaan = parts[1].strip()
+                    
+                    break 
 
             if terpanggil:
-                print(f"✅ Wake word terdeteksi! (dari: '{suara_asli}')")
+                print(f"📝 Command Awal: {sisa_pertanyaan}")
                 
-                # 3. Langsung jawab (best practice: confirm dulu sebelum lanjut)
-                ngomong("Ya, ada yang bisa saya bantu?")
-                
-                # 4. Baru dengar perintah setelah jawab (Phase 2)
-                pertanyaan = dengarkan_perintah()
+                # Variabel untuk menampung perintah final yang akan dieksekusi
+                final_command = sisa_pertanyaan
 
-                if not pertanyaan:
-                    print("😶 Tidak ada perintah yang tertangkap.")
-                    ngomong("Aku tidak menangkap perintah. Panggil aku lagi ya.")
-                    continue
+                # Kasus 1: Cuma panggil nama ("Gapin") tanpa perintah
+                if not final_command:
+                    ngomong("Ya, saya di sini. Mau apa?")
+                    
+                    print("🎤 Menunggu perintah lanjutan...")
+                    final_command = mendengar(listen_mode="command")
+                    
+                    if not final_command:
+                         ngomong("Tidak ada suara, saya kembali tidur.")
+                         continue # Kembali ke loop awal
 
-                pertanyaan = pertanyaan.lower().strip()
-                print(f"📝 Perintah: {pertanyaan}")
+                # --- BAGIAN EDIT: CEK MUSIK DULU ---
+                # Cek apakah command (baik yang langsung atau susulan) adalah musik?
+                is_music, music_reply, music_action = handle_music_command(final_command)
 
-                # 5. Proses perintah
-                handled, music_response, music_action = handle_music_command(pertanyaan)
-
-                if handled:
-                    if music_response:
-                        ngomong(music_response)
+                if is_music:
+                    # 1. Robot jawab status musik ("Memutar lagu...")
+                    if music_reply:
+                        ngomong(music_reply)
+                    
+                    # 2. Jalankan lagunya
                     if music_action:
-                        try:
-                            music_action()
-                        except Exception as err:
-                            print(f"❌ Gagal memutar lagu: {err}")
-                            ngomong("Maaf, aku gagal memutar lagu itu.")
-                    continue
+                        print("🎵 Memutar Musik...")
+                        music_action()
+                    
+                    # 3. Skip tanya Gemini, langsung loop lagi
+                    continue 
+                # -----------------------------------
 
-                # 6. Jika bukan perintah musik, tanya ke brain
-                jawaban = tanya_robot(pertanyaan)
+                # Kasus 2: Bukan musik, berarti pertanyaan buat Gemini
+                print("🧠 Mengirim ke Gemini...")
+                jawaban = tanya_robot(final_command)
                 ngomong(jawaban)
-
+                
             else:
-                # Bukan wake word - diabaikan dan lanjut listening (Phase 1 terus berjalan)
-                # Best practice: Silent ignore untuk wake word detection
-                # Sistem terus mendengarkan tanpa gangguan
+                # Robot cuek kalau nama tidak dipanggil
                 pass
 
         except KeyboardInterrupt:
             print("\nProgram dihentikan.")
             break
-
+        except Exception as e:
+            print(f"Error Loop: {e}")
 
 if __name__ == "__main__":
     main()
