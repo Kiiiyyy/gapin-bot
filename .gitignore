@@ -4,3 +4,4 @@
 .env.*.local
 .env.backup
 .env.production
+lagu/*
