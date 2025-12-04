@@ -47,6 +47,14 @@ def tanya_robot(pertanyaan):
     - Jawaban harus SINGKAT dan PADAT (maksimal 2-3 kalimat) agar enak didengar lewat speaker.
     - Jika pertanyaan di luar konteks kampus, jawab dengan pengetahuan umum tapi tetap sopan.
     
+    INSTRUKSI PENTING UNTUK SUARA (TTS):
+    1. JANGAN gunakan simbol markdown (seperti *, #, -, >, _).
+    2. JANGAN gunakan simbol matematika atau singkatan (ubah '/' menjadi 'atau', '%' menjadi 'persen', '+' menjadi 'tambah').
+    3. Hindari format list (bullet points). Ubah menjadi kalimat mengalir. 
+       (Contoh salah: "- Makan - Minum". Contoh benar: "Kegiatannya adalah makan dan minum.")
+    4. Jawaban harus SINGKAT dan PADAT (maksimal 2-3 kalimat).
+    5. Jawab dengan ramah dan sopan.
+    
     User: {pertanyaan}
     Gapin:
     """

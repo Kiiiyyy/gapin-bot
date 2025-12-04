@@ -3,18 +3,21 @@ import pygame
 import asyncio
 import os
 import time
+from src.utils import silence_alsa  # <--- Import Peredam
 
-# Init Audio Mixer
-pygame.mixer.init()
+# Init Audio Mixer dengan Peredam
+try:
+    with silence_alsa():
+        pygame.mixer.init()
+except Exception as e:
+    # Error silent, tapi tetap jalan kalau cuma warning
+    pass
 
 async def generate_voice(text, filename):
-    """
-    Generate voice audio file
-    """
+    """Generate voice audio file"""
     try:
         # Menggunakan suara cewek Indonesia (Gadis)
-        communicate = edge_tts.Communicate(text, "id-ID-ArdiNeural")
-	# communicate = edge_tts.Communicate(text, "id-ID-ArdiNeural")
+        communicate = edge_tts.Communicate(text, "id-ID-ArdiNeural", rate="+10%", pitch="+50Hz")
         await communicate.save(filename)
         return True
     except Exception as e:
@@ -22,44 +25,35 @@ async def generate_voice(text, filename):
         return False
 
 def ngomong(text):
-    """
-    Text-to-speech function
-    """
+    """Text-to-speech function"""
     if not text:
         return
         
     print(f"🤖 Robot: {text}")
     
-    # Generate unique filename to avoid conflicts
     timestamp = int(time.time())
     temp_filename = f"temp_voice_{timestamp}.mp3"
     
     try:
-        # Generate MP3
         success = asyncio.run(generate_voice(text, temp_filename))
-        
-        if not success:
-            return
+        if not success: return
             
         # Play Audio
-        pygame.mixer.music.load(temp_filename)
-        pygame.mixer.music.play()
+        with silence_alsa(): # Bungkam log saat load musik
+            pygame.mixer.music.load(temp_filename)
+            pygame.mixer.music.play()
         
-        # Wait until audio finishes playing
         while pygame.mixer.music.get_busy():
             pygame.time.Clock().tick(10)
         
-        # Stop and unload the music
         pygame.mixer.music.stop()
         pygame.mixer.music.unload()
         
-        # Clean up: delete the temp file after a short delay
-        time.sleep(0.5)  # Wait a bit before deleting
+        time.sleep(0.1)
         try:
-            os.remove(temp_filename)
-            print(f"🗑️ File {temp_filename} dihapus")
-        except Exception as e:
-            print(f"⚠️ Tidak bisa hapus file: {e}")
+            if os.path.exists(temp_filename):
+                os.remove(temp_filename)
+        except: pass
             
     except Exception as e:
-        print(f"❌ Error playing audio: {e}")
+        print(f"❌ Error Audio: {e}")

@@ -52,7 +52,7 @@ def main():
             gapin_eyes.set_mode("IDLE")
             
             # Mode raw/cepat untuk standby
-            suara_asli = gaphin_listen(mode="cmd", quick_calib=False) 
+            suara_asli = gaphin_listen(mode="wake", quick_calib=True) 
             
             if not suara_asli: continue
             

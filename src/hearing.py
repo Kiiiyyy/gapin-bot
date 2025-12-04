@@ -55,7 +55,6 @@ def _resolve_device_index(req_index=None):
 
         for i, name in enumerate(names):
             if name.strip().lower() == "pulse":
-                # logger.info(f"Found PulseAudio at index {i}")
                 return i
                 
     except Exception as e:
@@ -70,8 +69,6 @@ def _init(mic_index=None):
     global _RECOGNIZER, _MIC
     if not _RECOGNIZER:
         r = sr.Recognizer()
-        r.energy_threshold = 120
-        r.dynamic_energy_threshold = False
         r.operation_timeout = 4
         _RECOGNIZER = r
 
@@ -92,19 +89,26 @@ def _init(mic_index=None):
     return _RECOGNIZER, _MIC
 
 # ---------------------------------
-# CONFIG PROFILES
+# CONFIG PROFILES (FIXED)
 # ---------------------------------
 def _wake_config(r: sr.Recognizer):
-    """Mode Cepat (Wake Word)"""
+    """Mode Cepat (Wake Word) - SENSITIF"""
     r.pause_threshold = 0.4
     r.phrase_threshold = 0.2
     r.non_speaking_duration = 0.2
+    
+    # [FIX UTAMA: RESET SENSITIVITAS]
+    # Kita paksa balik ke 150 setiap kali masuk mode standby.
+    # Biar gak budeg kalau habis denger suara keras.
+    r.energy_threshold = 150 
+    r.dynamic_energy_threshold = False
 
 def _cmd_config(r: sr.Recognizer):
-    """Mode Sabar (Command)"""
+    """Mode Sabar (Command) - ADAPTIF"""
     r.pause_threshold = 0.6
     r.phrase_threshold = 0.3
     r.non_speaking_duration = 0.3
+    # Di mode ini nanti akan ada kalibrasi dinamis
 
 # ---------------------------------
 # QUICK CALIBRATION
@@ -115,6 +119,7 @@ def _quick_calibration(rec: sr.Recognizer, src, dur=0.2):
         with silence_alsa():
             rec.adjust_for_ambient_noise(src, duration=dur)
         
+        # Safety floor: Jangan sampe terlalu sensitif di mode perintah
         if rec.energy_threshold < 300:
             rec.energy_threshold = 300
             
@@ -130,16 +135,16 @@ def gaphin_listen(
     quick_calib=False, 
     calib_time=0.25, 
     mic_index=None,
-    on_phase_change=None # <--- Callback baru untuk kontrol Mata
+    on_phase_change=None 
 ):
     rec, src = _init(mic_index)
     if not rec or not src: return None
 
+    # Terapkan config sesuai mode
     _wake_config(rec) if mode == "wake" else _cmd_config(rec)
 
     with src:
-        # [PHASE 1] Start Listening
-        # Trigger Mata: LISTENING
+        # Trigger Mata: LISTENING (Start)
         if on_phase_change: on_phase_change("LISTENING")
 
         status_text = "👂 Standby (Wake)..." if mode == "wake" else "🎤 Menunggu Perintah..."
@@ -161,7 +166,6 @@ def gaphin_listen(
                     phrase_time_limit=4 if mode == "wake" else 10
                 )
 
-            # [PHASE 2] Processing
             # Trigger Mata: PROCESSING (Mikir)
             if on_phase_change: on_phase_change("PROCESSING")
             
@@ -170,10 +174,6 @@ def gaphin_listen(
 
             text = rec.recognize_google(audio, language="id-ID")
             
-            # [PHASE 3] Success
-            # Trigger Mata: IDLE (atau biarkan main.py yang handle speaking)
-            # if on_phase_change: on_phase_change("IDLE")
-
             sys.stdout.write(f"\r✅ Input: {text}                         \n")
             sys.stdout.flush()
             return text.strip()
