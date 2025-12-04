@@ -13,7 +13,8 @@ async def generate_voice(text, filename):
     """
     try:
         # Menggunakan suara cewek Indonesia (Gadis)
-        communicate = edge_tts.Communicate(text, "id-ID-GadisNeural")
+        communicate = edge_tts.Communicate(text, "id-ID-ArdiNeural")
+	# communicate = edge_tts.Communicate(text, "id-ID-ArdiNeural")
         await communicate.save(filename)
         return True
     except Exception as e:

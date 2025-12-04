@@ -1,6 +1,6 @@
 from src.brain import tanya_robot
 from src.speaking import ngomong
-from src.hearing import mendengar
+from src.hearing import gaphin_listen 
 from src.music import handle_music_command
 from src.iot import handle_iot_command
 from src.eyes import gapin_eyes
@@ -24,21 +24,35 @@ def main():
     # ------------------
 
     print("\n" + "="*50)
-    print("   🤖 ROBOT GAPIN (Full Body: Mata + Telinga + Mulut)")
+    print("   🤖 ROBOT GAPIN (Asisten Kampus Poltek GT)")
     print("="*50 + "\n")
     
     gapin_eyes.set_mode("SPEAKING")
-    ngomong("Sistem online. Panggil saya Gapin.")
+    # [UPDATE] Sapaan lebih ramah & beridentitas kampus
+    ngomong("Halo! Saya Gapin, asisten pintar Politeknik Gajah Tunggal. panggil saya : Halo gapin")
     gapin_eyes.set_mode("IDLE")
     
-    # Tambahkan variasi nama panggilan (termasuk typo umum STT)
-    WAKE_WORDS = ["halo gapin", "halo gavin", "halo davin", "gapin", "gavin", "dapin", "davin"]
+    # [UPDATE] Wake Words difokuskan ke variasi "Halo Gapin"
+    # Kita tetap simpan variasi typo (gavin, davin) biar robot gak budeg kalau Google salah dengar
+    
+    WAKE_WORDS = ["halo gapin", "halo gavi", "halo gavin", "halo davin", "gapin", "gavin", "halo dapin", "davin", "halo kevin", "halo ngapain"]
+
+    # --- FUNGSI BANTUAN UNTUK TELINGA ---
+    def update_eye_status(status):
+        if status == "LISTENING":
+            gapin_eyes.set_mode("LISTENING")
+        elif status == "PROCESSING":
+            gapin_eyes.set_mode("PROCESSING")
+        elif status == "IDLE":
+            gapin_eyes.set_mode("IDLE")
 
     while True:
         try:
-            # 1. STANDBY (Mata IDLE)
+            # 1. STANDBY PHASE (WAKE MODE)
             gapin_eyes.set_mode("IDLE")
-            suara_asli = mendengar(listen_mode="wake")
+            
+            # Mode raw/cepat untuk standby
+            suara_asli = gaphin_listen(mode="cmd", quick_calib=False) 
             
             if not suara_asli: continue
             
@@ -52,11 +66,8 @@ def main():
                 if trigger in suara_lower:
                     terpanggil = True
                     parts = suara_lower.split(trigger, 1)
-                    
                     if len(parts) > 1:
                         potongan = parts[1].strip()
-                        # [FIX PENTING] Filter sampah 1 huruf (misal: "n" sisa dari "davin")
-                        # Perintah dianggap valid minimal 2 huruf
                         if len(potongan) > 1:
                             final_command = potongan
                     break
@@ -65,25 +76,33 @@ def main():
                 # --- MATA MODE MENDENGAR ---
                 gapin_eyes.set_mode("LISTENING") 
                 
-                # Jika command kosong (atau cuma sampah 1 huruf tadi), tanya balik
+                # Jika cuma panggil nama ("Halo Gapin"), tanya balik dengan ramah
                 if not final_command:
                     gapin_eyes.set_mode("SPEAKING")
-                    ngomong("Ya?") # Respon cepat
-                    gapin_eyes.set_mode("LISTENING") 
+                    # [UPDATE] Respon ramah
+                    ngomong("Iya, Gapin di sini.")
                     
-                    # Masuk phase 2 (tunggu perintah sebenarnya)
-                    final_command = mendengar(listen_mode="command")
+                    # PHASE 2 (COMMAND MODE)
+                    final_command = gaphin_listen(
+                        mode="cmd", 
+                        quick_calib=True,
+                        on_phase_change=update_eye_status 
+                    )
                     
                     if not final_command:
                          gapin_eyes.set_mode("SPEAKING")
-                         ngomong("Tidak ada perintah.")
+                         # [UPDATE] Respon kalau user diam saja
+                         ngomong("Sepertinya suaranya putus-putus. Panggil Gapin lagi nanti ya.")
                          continue
 
-                print(f"📝 Command Bersih: {final_command}")
+                print(f"📝 Command: {final_command}")
                 
                 # --- LOGIKA EKSEKUSI ---
                 
-                # 1. Cek IoT (Lampu)
+                # Sebelum menjawab, set mata ke PROCESSING sebentar
+                gapin_eyes.set_mode("PROCESSING")
+
+                # 1. IoT
                 is_iot, iot_reply, iot_action = handle_iot_command(final_command)
                 if is_iot:
                     gapin_eyes.set_mode("SPEAKING")
@@ -91,7 +110,7 @@ def main():
                     if iot_action: iot_action()
                     continue 
                 
-                # 2. Cek Musik
+                # 2. Musik
                 is_music, music_reply, music_action = handle_music_command(final_command)
                 if is_music:
                     gapin_eyes.set_mode("SPEAKING")
@@ -100,15 +119,16 @@ def main():
                     gapin_eyes.set_mode("IDLE")
                     continue 
 
-                # 3. Cek Exit
-                if "matikan sistem" in final_command.lower():
+                # 3. Exit
+                if "matikan sistem" in final_command.lower() or "matikan system" in final_command.lower():
                     gapin_eyes.set_mode("SPEAKING")
-                    ngomong("Sistem dimatikan.")
+                    # [UPDATE] Salam perpisahan ala kampus
+                    ngomong("Baik, Gapin istirahat dulu. Semangat kuliahnya dan jangan lupa 5R ya!")
                     gapin_eyes.stop()
                     break
                     
-                # 4. Tanya Gemini
-                print("🧠 Tanya Gemini...")
+                # 4. Gemini (Otak)
+                # print("🧠 Tanya Gemini...") 
                 jawaban = tanya_robot(final_command)
                 
                 gapin_eyes.set_mode("SPEAKING")
@@ -122,7 +142,7 @@ def main():
             gapin_eyes.stop()
             break
         except Exception as e:
-            print(f"\n❌ Error: {e}")
+            print(f"\n❌ Error Main Loop: {e}")
             time.sleep(1)
 
 if __name__ == "__main__":

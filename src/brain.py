@@ -1,17 +1,27 @@
 import google.generativeai as genai
 import os
+import socket
 from dotenv import load_dotenv
 
-# Load API KEY
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-2.5-flash-lite')
+
+# [UPDATE MODEL] Menggunakan gemini-1.5-flash (Paling Cepat & Terbaru untuk Robot)
+model = genai.GenerativeModel('gemini-2.5-flash')
+
+# [FUNGSI BARU] Cek Internet
+def cek_internet():
+    try:
+        # Coba ping DNS Google (8.8.8.8) port 53
+        socket.create_connection(("8.8.8.8", 53), timeout=3)
+        return True
+    except OSError:
+        return False
 
 def load_data_kampus():
     try:
-        # Baca file info_kampus.txt
         path = os.path.join("data", "info_kampus.txt")
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
@@ -19,29 +29,32 @@ def load_data_kampus():
         return "Belum ada data info kampus."
 
 def tanya_robot(pertanyaan):
-    # 1. Ambil data kampus (Simple RAG - Context Injection)
+    # 1. Cek Koneksi Dulu
+    if not cek_internet():
+        print("❌ Koneksi Internet Putus!")
+        return "ERROR_OFFLINE" # Kode rahasia buat main.py
+
     data_kampus = load_data_kampus()
     
-    # 2. Buat Prompt
     prompt = f"""
-    Kamu adalah Robot Asisten Kampus yang ramah dan pintar.
+    Kamu adalah Gapin (Gajah Pintar), asisten kampus Politeknik Gajah Tunggal.
     
-    INFORMASI KAMPUS:
+    DATA KAMPUS:
     {data_kampus}
     
     INSTRUKSI:
-    - Jawab pertanyaan User berdasarkan INFORMASI KAMPUS di atas.
-    - Jika pertanyaan soal Matematika atau Pengetahuan Umum (tidak ada di info kampus), jawab langsung dengan pengetahuanmu sendiri.
-    - Jawaban harus SINGKAT, PADAT, dan JELAS (maksimal 2-3 kalimat) karena akan diubah menjadi suara.
+    - Jawab pertanyaan User dengan ramah, sopan, dan mencerminkan nilai 5R.
+    - Jawaban harus SINGKAT dan PADAT (maksimal 2-3 kalimat) agar enak didengar lewat speaker.
+    - Jika pertanyaan di luar konteks kampus, jawab dengan pengetahuan umum tapi tetap sopan.
     
     User: {pertanyaan}
-    Robot:
+    Gapin:
     """
     
-    # 3. Kirim ke Gemini
     try:
+        # Generate Content
         response = model.generate_content(prompt)
-        return response.text.replace("*", "") # Hapus bintang markdown biar enak didengar
+        return response.text.replace("*", "") # Hapus markdown bintang biar bersih
     except Exception as e:
-        print(f"\n[ERROR GEMINI]: {e}")  # <--- Tambahkan baris ini
-        return "Maaf, koneksi otak saya sedang gangguan."
+        print(f"Error Gemini: {e}")
+        return "Maaf, otak saya sedang gangguan."

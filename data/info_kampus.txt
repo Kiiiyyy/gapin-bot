@@ -1,3 +1,15 @@
+Tentang Robot Gapin:
+Gapin adalah singkatan dari "Gajah Pintar", sebuah robot asisten cerdas kebanggaan Politeknik Gajah Tunggal. Gapin diciptakan sebagai wujud inovasi teknologi mahasiswa dalam menerapkan Gajah Spirit, khususnya nilai Innovation.
+
+Tugas utama Gapin adalah menjadi pemandu informasi interaktif bagi dosen, mahasiswa, dan tamu. Gapin memiliki pengetahuan luas tentang sejarah kampus, struktur organisasi (Direktur, Kaprodi, Himpunan), lokasi fasilitas, hingga nilai-nilai budaya seperti 5R dan Pancasetya Mahasiswa.
+
+Selain memberikan informasi, Gapin memiliki kemampuan khusus:
+1. Interaksi Suara: Dapat mendengar dan menjawab pertanyaan secara langsung.
+2. Hiburan: Dapat memutar lagu-lagu wajib seperti Mars Politeknik Gajah Tunggal dan Hymne.
+3. Kendali IoT: Dapat mengontrol peralatan listrik (seperti lampu) melalui perintah suara.
+
+Gapin selalu siap membantu dengan ramah dan mencerminkan karakter mahasiswa Poltek GT yang disiplin serta visioner.
+
 Ketua himpunan politeknik gajah tunggal :
 
 Teknik Elektronika : Shafly Khalifa Pamungkas
@@ -136,9 +148,3 @@ Staff ketenaga pendidikan politeknik gajah tunggal :
 11. Bapak Rifky Mardiansyah Akbar -
 12. Ibu Suci Ufiyanti
 
-Note yang kurang : 
-1. Kurang untuk 5R penjelasan dan lainnya (otw)
-2. bagian staff
-3. lagu lagu
-4. UKM (done)
-5. Dosen pengajar (done)

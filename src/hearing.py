@@ -1,170 +1,194 @@
-import speech_recognition as sr
 import os
 import sys
 import time
+import logging
+import speech_recognition as sr
 from contextlib import contextmanager
 
-# --- SILENCER ERROR ALSA ---
+# ---------------------------------
+# LOGGING CONFIG
+# ---------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(message)s",
+    datefmt="%H:%M:%S"
+)
+logger = logging.getLogger("GaphinSpeech")
+
+# ---------------------------------
+# GLOBAL SINGLETONS
+# ---------------------------------
+_RECOGNIZER = None
+_MIC = None
+
+# ---------------------------------
+# SILENCE ALSA ERRORS
+# ---------------------------------
 @contextmanager
-def no_alsa_error():
+def silence_alsa():
+    """Membungkam error ALSA/JACK yang berisik"""
     try:
-        original_stderr = os.dup(sys.stderr.fileno())
-        devnull = os.open(os.devnull, os.O_WRONLY)
-        os.dup2(devnull, sys.stderr.fileno())
+        stderr_fd = os.dup(sys.stderr.fileno())
+        with open(os.devnull, 'w') as devnull:
+            os.dup2(devnull.fileno(), sys.stderr.fileno())
         yield
     finally:
-        os.dup2(original_stderr, sys.stderr.fileno())
-        os.close(original_stderr)
-        if 'devnull' in locals():
-            os.close(devnull)
+        os.dup2(stderr_fd, sys.stderr.fileno())
 
-# --- GLOBAL VARIABLES ---
-_SHARED_RECOGNIZER = None
-_SHARED_MIC = None
-# ------------------------
+# ---------------------------------
+# DEVICE RESOLUTION (PULSE ONLY)
+# ---------------------------------
+def _resolve_device_index(req_index=None):
+    if req_index is not None:
+        return req_index
 
-def _get_device_index(requested_index=None):
-    if requested_index is not None:
-        return requested_index
+    # Cek environment variable dulu
+    env_idx = os.getenv("MIC_DEVICE_INDEX")
+    if env_idx:
+        try: return int(env_idx)
+        except: pass
 
-    env_val = os.getenv("MIC_DEVICE_INDEX")
-    if env_val and env_val.strip():
-        try:
-            return int(env_val)
-        except ValueError: 
-            pass
-
+    # Karena Bapak PASTI pakai Pulse, kita cari device "pulse" saja
     try:
-        with no_alsa_error():
-            mic_names = sr.Microphone.list_microphone_names()
-        for i, name in enumerate(mic_names):
-            if "pulse" == name.strip().lower(): 
+        with silence_alsa():
+            names = sr.Microphone.list_microphone_names()
+
+        for i, name in enumerate(names):
+            if name.strip().lower() == "pulse":
+                # logger.info(f"Found PulseAudio at index {i}")
                 return i
-        for i, name in enumerate(mic_names):
-            if "default" in name.lower(): 
-                return i
-    except Exception:
-        pass
-    return None
-
-
-def _init_shared_resources(mic_device=None):
-    global _SHARED_RECOGNIZER, _SHARED_MIC
-    
-    if _SHARED_RECOGNIZER is None:
-        _SHARED_RECOGNIZER = sr.Recognizer()
-        _SHARED_RECOGNIZER.dynamic_energy_threshold = False
-        _SHARED_RECOGNIZER.energy_threshold = 130
-
-    if _SHARED_MIC is None:
-        device_index = _get_device_index(mic_device)
-        try:
-            with no_alsa_error():
-                _SHARED_MIC = sr.Microphone(device_index=device_index)
-        except Exception as e:
-            print(f"❌ Gagal init mic: {e}")
-            return None, None
-            
-    return _SHARED_RECOGNIZER, _SHARED_MIC
-
-
-# ===================================================================
-#     OPTIMIZED FAST RECOGNIZER - WAKE + COMMAND MODE
-# ===================================================================
-
-def mendengar(listen_mode="wake", mic_device=None):
-    recognizer, source = _init_shared_resources(mic_device)
-    if not recognizer or not source:
-        return None
-
-    # ⚡ MODE PEMROSESAN CEPAT
-    recognizer.dynamic_energy_threshold = False
-    recognizer.energy_threshold = 130
-    recognizer.pause_threshold = 0.4
-    recognizer.non_speaking_duration = 0.15
-    recognizer.operation_timeout = 1
-
-    last_text = ""
-    debounce_time = 0.7
-
-    try:
-        with source:
-            if listen_mode == "wake":
-                print("\r👂 Mode WAKE (Ultra Responsif!)", end="", flush=True)
-
-                while True:
-                    try:
-                        with no_alsa_error():
-                            audio = recognizer.listen(
-                                source,
-                                timeout=0.35,
-                                phrase_time_limit=3.5
-                            )
-
-                        try:
-                            text = recognizer.recognize_google(audio, language="id-ID").strip()
-                            
-                            if text and text != last_text:
-                                last_text = text
-                                print(f"\n🟢 Dengar: {text}")
-                                time.sleep(debounce_time)
-                                return text
-
-                            print("\r👂 ...                                             ", end="", flush=True)
-
-                        except sr.UnknownValueError:
-                            print("\r👂 ...                                             ", end="", flush=True)
-                            continue
-                        except sr.RequestError:
-                            time.sleep(0.3)
-                            continue
-
-                    except sr.WaitTimeoutError:
-                        print("\r👂 Standby cepat...                                ", end="", flush=True)
-                        continue
-
-
-            else:
-                print("\r🎤 Dengarkan perintah...", end="", flush=True)
-                recognizer.pause_threshold = 0.45
-                recognizer.non_speaking_duration = 0.2
-
-                try:
-                    with no_alsa_error():
-                        audio = recognizer.listen(
-                            source,
-                            timeout=3,
-                            phrase_time_limit=6.5
-                        )
-
-                    print("\r⏳ Memproses...", end="", flush=True)
-                    text = recognizer.recognize_google(audio, language="id-ID").strip()
-                    print(f"\r🟢 Perintah: {text}                ")
-
-                    return text
-
-                except sr.WaitTimeoutError:
-                    print("\r⌛ Terlalu lama diam.           ")
-                    return None
-                except sr.UnknownValueError:
-                    print("\r❌ Tidak terdengar/kurang jelas.")
-                    return None
-                except sr.RequestError:
-                    print("\r⚠️ Gangguan API Google       ")
-                    time.sleep(0.3)
-                    return None
-
-    except KeyboardInterrupt:
-        return None
+                
     except Exception as e:
-        print(f"\n⚠️ Error: {e}")
-        return None
+        logger.error(f"Gagal mencari mic: {e}")
 
+    return None # Fallback ke default sistem (0)
 
-# ===============================================================
-# TESTING MODE MANDIRI
-# ===============================================================
+# ---------------------------------
+# INIT RESOURCES
+# ---------------------------------
+def _init(mic_index=None):
+    global _RECOGNIZER, _MIC
+    if not _RECOGNIZER:
+        r = sr.Recognizer()
+        r.energy_threshold = 120
+        r.dynamic_energy_threshold = False
+        r.operation_timeout = 4
+        _RECOGNIZER = r
 
-if __name__ == "__main__":
-    print("Testing Ultra Fast Mode...")
-    mendengar("wake")
+    if not _MIC:
+        idx = _resolve_device_index(mic_index)
+        try:
+            with silence_alsa():
+                _MIC = sr.Microphone(
+                    device_index=idx,
+                    sample_rate=16000,
+                    chunk_size=1024
+                )
+            logger.info(f"Mic init success (Index: {idx})")
+        except Exception as e:
+            logger.error(f"Mic init FAIL: {e}")
+            return None, None
+
+    return _RECOGNIZER, _MIC
+
+# ---------------------------------
+# CONFIG PROFILES
+# ---------------------------------
+def _wake_config(r: sr.Recognizer):
+    """Mode Cepat (Wake Word)"""
+    r.pause_threshold = 0.4
+    r.phrase_threshold = 0.2
+    r.non_speaking_duration = 0.2
+
+def _cmd_config(r: sr.Recognizer):
+    """Mode Sabar (Command)"""
+    r.pause_threshold = 0.6
+    r.phrase_threshold = 0.3
+    r.non_speaking_duration = 0.3
+
+# ---------------------------------
+# QUICK CALIBRATION
+# ---------------------------------
+def _quick_calibration(rec: sr.Recognizer, src, dur=0.2):
+    try:
+        rec.dynamic_energy_threshold = True
+        with silence_alsa():
+            rec.adjust_for_ambient_noise(src, duration=dur)
+        
+        if rec.energy_threshold < 300:
+            rec.energy_threshold = 300
+            
+        rec.dynamic_energy_threshold = False
+    except:
+        rec.dynamic_energy_threshold = False
+
+# ---------------------------------
+# MAIN LISTENER
+# ---------------------------------
+def gaphin_listen(
+    mode="wake", 
+    quick_calib=False, 
+    calib_time=0.25, 
+    mic_index=None,
+    on_phase_change=None # <--- Callback baru untuk kontrol Mata
+):
+    rec, src = _init(mic_index)
+    if not rec or not src: return None
+
+    _wake_config(rec) if mode == "wake" else _cmd_config(rec)
+
+    with src:
+        # [PHASE 1] Start Listening
+        # Trigger Mata: LISTENING
+        if on_phase_change: on_phase_change("LISTENING")
+
+        status_text = "👂 Standby (Wake)..." if mode == "wake" else "🎤 Menunggu Perintah..."
+        sys.stdout.write(f"\r{status_text}                           ")
+        sys.stdout.flush()
+
+        if quick_calib:
+            sys.stdout.write("\r🎤 Kalibrasi Noise...                  ")
+            sys.stdout.flush()
+            _quick_calibration(rec, src, calib_time)
+            sys.stdout.write(f"\r{status_text}                           ")
+            sys.stdout.flush()
+
+        try:
+            with silence_alsa():
+                audio = rec.listen(
+                    src,
+                    timeout=0.5 if mode == "wake" else 4,
+                    phrase_time_limit=4 if mode == "wake" else 10
+                )
+
+            # [PHASE 2] Processing
+            # Trigger Mata: PROCESSING (Mikir)
+            if on_phase_change: on_phase_change("PROCESSING")
+            
+            sys.stdout.write("\r⚡ Processing...                       ")
+            sys.stdout.flush()
+
+            text = rec.recognize_google(audio, language="id-ID")
+            
+            # [PHASE 3] Success
+            # Trigger Mata: IDLE (atau biarkan main.py yang handle speaking)
+            # if on_phase_change: on_phase_change("IDLE")
+
+            sys.stdout.write(f"\r✅ Input: {text}                         \n")
+            sys.stdout.flush()
+            return text.strip()
+
+        except sr.WaitTimeoutError:
+            if mode != "wake":
+                sys.stdout.write("\r❌ Timeout (Tidak ada suara)          \n")
+            return None
+        except sr.UnknownValueError:
+            if mode != "wake":
+                sys.stdout.write("\r❌ Tidak jelas / Noise                \n")
+            return None
+        except sr.RequestError:
+            sys.stdout.write("\r❌ Gangguan Koneksi                   \n")
+            return None
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            return None
